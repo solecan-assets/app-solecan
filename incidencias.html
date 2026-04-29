@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Libro de Órdenes</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #2b2b2b;
+  display: flex;
+  justify-content: center;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 420px;
+  background: #f4f6f9;
+  min-height: 100vh;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+#logo {
+  width: 200px;
+  display: block;
+  margin: 20px auto 10px;
+}
+
+.content {
+  padding: 15px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 15px;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  color: white;
+}
+
+.card {
+  background: white;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+}
+
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.botones-mini {
+  display: flex;
+  gap: 5px;
+}
+
+.botones-mini button {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+}
+
+.azul { background: #2f5fa7; color: white; }
+.verde { background: #2e8b57; color: white; }
+.rojo { background: #c0392b; color: white; }
+.gris { background: #7f8c8d; color: white; }
+
+.editar {
+  background: #7f8c8d;
+}
+
+.eliminar {
+  background: #c0392b;
+}
+
+.panel-visita {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #f4f6f9;
+  padding: 15px;
+  box-shadow: 0 -3px 10px rgba(0,0,0,0.15);
+}
+
+select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.actions button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  color: white;
+  text-align: center;
+  font-weight: bold;
+}
+
+.grabar { background: #c0392b; }
+.foto { background: #2f5fa7; }
+.guardar { background: #2e8b57; }
+
+.grabando-activo {
+  background: #e57373 !important;
+}
+
+.boton-eliminar {
+  background: #c0392b;
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+}
+
+button {
+  cursor: pointer;
+}
+</style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f5fa7">
+
+</head>
+
+<body>
+
+<div class="app-container">
+
+<img src="Logo.png" id="logo">
+
+<div id="app"></div>
+
+<div class="panel-visita" id="panelVisita" style="display:none;">
+
+  <h3>Visita en curso</h3>
+
+<select id="gremio">
+  <option>Electricidad (BT/MT)</option>
+  <option>Fontanería</option>
+  <option>Saneamiento</option>
+  <option>Albañilería</option>
+  <option>Estructura</option>
+  <option>Climatización (HVAC)</option>
+  <option>Ventilación</option>
+  <option>Protección contra incendios (PCI)</option>
+  <option>Energía solar fotovoltaica</option>
+  <option>Energía solar térmica (ACS)</option>
+  <option>Telecomunicaciones</option>
+  <option>Control y automatización (domótica/BMS)</option>
+  <option>Iluminación</option>
+  <option>Aislamientos térmicos/acústicos</option>
+  <option>Carpintería (madera)</option>
+  <option>Carpintería metálica</option>
+  <option>Cerrajería</option>
+  <option>Impermeabilización</option>
+  <option>Pintura y acabados</option>
+  <option>Falsos techos</option>
+  <option>Pavimentos y revestimientos</option>
+  <option>Vidrios y acristalamientos</option>
+  <option>Urbanización exterior</option>
+  <option>Movimiento de tierras</option>
+  <option>Ascensores y elevación</option>
+  <option>Frío industrial</option>
+  <option>Cocinas industriales / extracción</option>
+  <option>Gas</option>
+  <option>Seguridad (CCTV / intrusión)</option>
+  <option>Señalización</option>
+  <option>Limpieza final de obra</option>
+  <option>Otros</option>
+</select>
+
+  <select id="urgencia">
+    <option>Baja</option>
+    <option>Media</option>
+    <option>Alta</option>
+  </select>
+
+  <div class="actions">
+    <button id="btnGrabar" class="grabar">🎙️</button>
+    <button onclick="abrirCamara()" class="foto">📷</button>
+    <button id="btnGuardar" class="guardar" disabled>💾</button>
+  </div>
+
+</div>
+
+<input type="file" id="foto" accept="image/*" capture="environment" style="display:none">
+
+</div>
+
+<script>
+
+let obras = JSON.parse(localStorage.getItem("obras")) || [];
+let obraActual = null;
+let obraActualIndex = null;
+
+let visitaActual = null;
+let visitaActualIndex = null;
+let esNuevaVisita = false;
+
+let mediaRecorder;
+let audioChunks = [];
+let audioBlob = null;
+let imagenBase64 = null;
+let grabando = false;
+
+let intervaloTiempo = null;
+let segundosGrabacion = 0;
+
+function guardarDatos() {
+  localStorage.setItem("obras", JSON.stringify(obras));
+}
+
+// ---------------- OBRAS ----------------
+
+function mostrarObras() {
+
+  document.getElementById("panelVisita").style.display = "none";
+
+  let app = document.getElementById("app");
+
+  app.innerHTML = `
+    <div class="content">
+      <button class="verde" onclick="crearObra()">➕ Nueva obra</button>
+  `;
+
+  obras.forEach((o, i) => {
+    app.innerHTML += `
+      <div class="card">
+        <div class="card-row">
+          <div onclick="seleccionarObra(${i})" style="flex:1; cursor:pointer; font-weight:bold;">
+            ${o.codigo} - ${o.nombre}
+          </div>
+
+          <div class="botones-mini">
+            <button class="editar" onclick="editarObra(${i})"></button>
+            <button class="eliminar" onclick="eliminarObra(${i})"></button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  app.innerHTML += `</div>`;
+}
+
+function crearObra() {
+  let nombre = prompt("Nombre:");
+  let codigo = prompt("Código:");
+  if (!nombre || !codigo) return;
+
+  obras.push({ nombre, codigo, visitas: [] });
+  guardarDatos();
+  mostrarObras();
+}
+
+function editarObra(index) {
+  let nombre = prompt("Nuevo nombre:", obras[index].nombre);
+  let codigo = prompt("Nuevo código:", obras[index].codigo);
+
+  if (!nombre || !codigo) return;
+
+  obras[index].nombre = nombre;
+  obras[index].codigo = codigo;
+
+  guardarDatos();
+  mostrarObras();
+}
+
+function eliminarObra(index) {
+  if (!confirm("¿Eliminar obra?")) return;
+  if (!confirm("Esto elimina todo definitivamente")) return;
+
+  obras.splice(index, 1);
+  guardarDatos();
+  mostrarObras();
+}
+
+function seleccionarObra(index) {
+  obraActualIndex = index;
+  obraActual = obras[index];
+  mostrarVisitas();
+}
+
+// ---------------- VISITAS ----------------
+
+function mostrarVisitas() {
+
+  document.getElementById("panelVisita").style.display = "none";
+
+  let app = document.getElementById("app");
+
+  app.innerHTML = `
+    <div class="content">
+      <button class="gris" onclick="mostrarObras()">⬅️</button>
+      <h3>${obraActual.nombre}</h3>
+      <button class="verde" onclick="nuevaVisita()">➕ Nueva visita</button>
+  `;
+
+  obraActual.visitas.forEach((v, i) => {
+    app.innerHTML += `
+      <div class="card">
+        <div class="card-row">
+          <div style="flex:1; cursor:pointer;" onclick="abrirVisita(${i})">
+            ${v.fecha}
+          </div>
+
+          <div class="botones-mini">
+            <button class="editar" onclick="abrirVisita(${i})"></button>
+            <button class="eliminar" onclick="eliminarVisita(${i})"></button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  app.innerHTML += `</div>`;
+}
+
+function nuevaVisita() {
+  visitaActual = {
+    fecha: new Date().toLocaleString(),
+    incidencias: []
+  };
+
+  visitaActualIndex = null;
+  esNuevaVisita = true;
+
+  mostrarVisitaActual();
+}
+
+function abrirVisita(index) {
+  visitaActualIndex = index;
+  visitaActual = obraActual.visitas[index];
+  esNuevaVisita = false;
+
+  mostrarVisitaActual();
+}
+
+function eliminarVisita(index) {
+  if (!confirm("¿Eliminar visita?")) return;
+
+  obraActual.visitas.splice(index, 1);
+  guardarDatos();
+  mostrarVisitas();
+}
+
+// ---------------- VISITA ACTUAL ----------------
+
+function mostrarVisitaActual() {
+
+  document.getElementById("panelVisita").style.display = "block";
+
+  let app = document.getElementById("app");
+
+  app.innerHTML = `
+    <div class="header">
+      <button class="icon-btn gris" onclick="volverDesdeVisita()">⬅️</button>
+      <button class="icon-btn azul" onclick="cerrarVisita()">✔</button>
+    </div>
+
+    <div class="content" style="padding-bottom:220px;">
+      <div id="incidencias"></div>
+    </div>
+  `;
+
+  configurarEventos();
+  mostrarIncidenciasActual();
+}
+
+function volverDesdeVisita() {
+  document.getElementById("panelVisita").style.display = "none";
+  mostrarVisitas();
+}
+
+function cerrarVisita() {
+
+  if (esNuevaVisita) {
+    obraActual.visitas.push(visitaActual);
+  } else {
+    obraActual.visitas[visitaActualIndex] = visitaActual;
+  }
+
+  obras[obraActualIndex] = obraActual;
+
+  guardarDatos();
+
+  document.getElementById("panelVisita").style.display = "none";
+
+  visitaActual = null;
+  visitaActualIndex = null;
+  esNuevaVisita = false;
+
+  mostrarVisitas();
+}
+
+// ---------------- INCIDENCIAS ----------------
+
+function mostrarIncidenciasActual() {
+
+  let cont = document.getElementById("incidencias");
+  cont.innerHTML = "";
+
+  visitaActual.incidencias.forEach((i, index) => {
+    cont.innerHTML += `
+      <div class="card">
+        <div class="card-row">
+          <div>
+            ${i.fecha}<br>
+            ${i.gremio} - ${i.urgencia}<br>
+            <span style="color:#555; font-size:13px;">
+              ${i.texto || ""}
+            </span>
+          </div>
+
+          <button class="boton-eliminar" onclick="eliminarIncidencia(${index})"></button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function eliminarIncidencia(index) {
+  if (!confirm("¿Eliminar esta incidencia?")) return;
+
+  visitaActual.incidencias.splice(index, 1);
+  mostrarIncidenciasActual();
+}
+
+// ---------------- EVENTOS ----------------
+
+function configurarEventos() {
+
+  const btnGrabar = document.getElementById("btnGrabar");
+  const btnGuardar = document.getElementById("btnGuardar");
+
+  btnGrabar.onclick = async () => {
+
+    if (!grabando) {
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+      mediaRecorder.onstop = () => {
+        if (audioChunks.length === 0) return;
+
+        audioBlob = new Blob(audioChunks);
+        btnGuardar.disabled = false;
+      };
+
+      segundosGrabacion = 0;
+      btnGrabar.classList.add("grabando-activo");
+
+      intervaloTiempo = setInterval(() => {
+
+        segundosGrabacion++;
+
+        let min = String(Math.floor(segundosGrabacion / 60)).padStart(2, '0');
+        let sec = String(segundosGrabacion % 60).padStart(2, '0');
+
+        btnGrabar.textContent = `${min}:${sec}`;
+
+      }, 1000);
+
+      grabando = true;
+
+    } else {
+
+      mediaRecorder.stop();
+
+      clearInterval(intervaloTiempo);
+
+      grabando = false;
+
+      btnGrabar.textContent = "🎙️";
+      btnGrabar.classList.remove("grabando-activo");
+    }
+  };
+
+  document.getElementById("foto").onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onloadend = () => imagenBase64 = reader.result;
+    reader.readAsDataURL(file);
+  };
+}
+  btnGuardar.onclick = async () => {
+
+if (!audioBlob) return alert("Graba audio");
+
+let textoIA = "";
+
+try {
+
+  const formData = new FormData();
+  formData.append("file", audioBlob, "audio.webm");
+
+  const respuesta = await fetch("https://patient-truth-91f8.jsantana-6f9.workers.dev", {
+    method: "POST",
+    body: formData
+  });
+
+  const datos = await respuesta.json();
+  textoIA = datos.mejorado || datos.texto || "";
+
+} catch (e) {
+  console.log("Error API:", e);
+}
+
+let reader = new FileReader();
+
+reader.onloadend = () => {
+
+  const audioBase64 = reader.result;
+
+  visitaActual.incidencias.push({
+    fecha: new Date().toLocaleString(),
+    audio: audioBase64,
+    texto: textoIA,
+    gremio: document.getElementById("gremio").value,
+    urgencia: document.getElementById("urgencia").value
+  });
+
+  audioBlob = null;
+  imagenBase64 = null;
+  document.getElementById("foto").value = "";
+  btnGuardar.disabled = true;
+
+  mostrarIncidenciasActual();
+};
+
+reader.readAsDataURL(audioBlob);
+};
+
+
+
+function abrirCamara() {
+  document.getElementById("foto").click();
+}
+
+// INIT
+mostrarObras();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+
+</script>
+
+</body>
+</html>
