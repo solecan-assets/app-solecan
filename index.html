@@ -593,8 +593,33 @@ async function cargarDesdeNube() {
 
     console.log("NUBE:", data);
 
-    // 🔴 aquí de momento solo lo mostramos
-    // luego lo integramos en obras
+    // 🔴 SI NO HAY OBRAS, CREAMOS UNA AUTOMÁTICA
+    if (obras.length === 0) {
+      obras.push({
+        nombre: "Obra sincronizada",
+        codigo: "CLOUD",
+        visitas: []
+      });
+    }
+
+    // 🔴 METEMOS TODO EN UNA VISITA
+    const visita = {
+      fecha: "Datos sincronizados",
+      incidencias: []
+    };
+
+    data.forEach(item => {
+      visita.incidencias.push({
+        fecha: item.fecha || "",
+        texto: item.texto || "",
+        gremio: item.gremio || "",
+        urgencia: item.urgencia || ""
+      });
+    });
+
+    obras[0].visitas = [visita];
+
+    guardarDatos();
 
   } catch (e) {
     console.log("Error cargando nube:", e);
