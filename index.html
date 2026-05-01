@@ -279,6 +279,7 @@ function crearObra() {
 
   obras.push({ nombre, codigo, visitas: [] });
   guardarDatos();
+  cargarDesdeNube();
   mostrarObras();
 }
 
@@ -583,6 +584,28 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
 }
 
+async function cargarDesdeNube() {
+
+  try {
+
+    const res = await fetch("https://patient-truth-91f8.jsantana-6f9.workers.dev");
+    const data = await res.json();
+
+    console.log("NUBE:", data);
+
+    // 🔴 aquí de momento solo lo mostramos
+    // luego lo integramos en obras
+
+  } catch (e) {
+    console.log("Error cargando nube:", e);
+  }
+
+}
+  
+  
+  
+
+  
 </script>
 
 </body>
