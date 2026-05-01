@@ -586,9 +586,12 @@ if ('serviceWorker' in navigator) {
 
 async function cargarDesdeNube() {
 
+console.log("🔥 ENTRO EN cargarDesdeNube");
+  
   try {
-
+console.log("🌍 VOY A LLAMAR AL WORKER");
     const res = await fetch("https://patient-truth-91f8.jsantana-6f9.workers.dev");
+    console.log("✅ RESPUESTA RECIBIDA");
     const data = await res.json();
 
     console.log("NUBE:", data);
